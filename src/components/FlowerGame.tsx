@@ -38,26 +38,32 @@ const LEVEL_GOALS = {
 
 const PROMPT_MISSIONS = [
   {
-    id: 1,
-    title: "주인공을 정해요!",
-    description: "누가 무엇을 하고 있나요?",
-    parts: ["고양이가", "강아지가", "사자가"],
-    action: ["춤을 춰요", "잠을 자요", "노래해요"],
-    target: "고양이가 춤을 춰요"
+    id: "subject",
+    category: "주인공",
+    title: "누구를 그릴까요?",
+    description: "그림의 가장 중요한 주인공을 골라보세요.",
+    parts: ["귀여운 고양이", "용감한 강아지", "웃고있는 사자", "우주 비행사"]
   },
   {
-    id: 2,
-    title: "장소를 더해봐요!",
-    description: "어디에서 하고 있나요?",
-    parts: ["우주에서", "바다 밑에서", "구름 위에서"],
-    target: "우주에서"
+    id: "action",
+    category: "행동",
+    title: "무엇을 하고 있나요?",
+    description: "주인공이 어떤 행동을 하면 좋을까요?",
+    parts: ["춤을 추고 있는", "노래를 부르는", "신나게 달리는", "잠을 자고 있는"]
   },
   {
-    id: 3,
-    title: "색깔과 스타일!",
-    description: "어떤 색깔이 좋을까요?",
-    parts: ["반짝이는 무지개색", "시원한 파란색", "따뜻한 노란색"],
-    target: "반짝이는 무지개색"
+    id: "place",
+    category: "배경",
+    title: "어느 장소인가요?",
+    description: "멋진 배경을 더하면 그림이 더 풍성해져요.",
+    parts: ["신비로운 우주", "깊은 바다 속", "구름 위 마을", "초록빛 숲속"]
+  },
+  {
+    id: "style",
+    category: "예술 스타일",
+    title: "어떤 느낌이 좋은가요?",
+    description: "그림의 분위기를 결정하는 마법의 가루예요.",
+    parts: ["반짝이는 수채화", "선명한 애니메이션", "깜찍한 3D 캐릭터", "웅장한 유화"]
   }
 ];
 
@@ -572,24 +578,27 @@ export default function MagicStickApp() {
           )}
 
           {currentModule === 'prompt' && isStarted && !isCompleted && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 gap-8">
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 gap-6 bg-gradient-to-b from-white/20 to-transparent">
+              {/* Mission Panel */}
               <motion.div
-                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                className="glass-panel p-10 rounded-[3rem] w-full max-w-4xl border-white/20 shadow-2xl bg-white/80 backdrop-blur-xl"
+                key={promptStep}
+                initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+                className="glass-panel p-10 rounded-[3rem] w-full max-w-4xl border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl relative overflow-hidden"
               >
-                <div className="flex items-center gap-4 mb-6 text-pink-600">
-                  <Sparkles size={48} />
-                  <h2 className="text-4xl font-black">{PROMPT_MISSIONS[promptStep].title}</h2>
+                <div className="absolute top-0 right-0 p-4 opacity-10"><Brain size={120} /></div>
+                <div className="flex items-center gap-4 mb-4 text-pink-600">
+                  <span className="px-4 py-1 bg-pink-100 rounded-full text-lg font-black uppercase tracking-widest">{PROMPT_MISSIONS[promptStep].category}</span>
                 </div>
-                <p className="text-3xl font-bold text-gray-700 mb-10">{PROMPT_MISSIONS[promptStep].description}</p>
+                <h2 className="text-4xl font-black text-gray-900 mb-2">{PROMPT_MISSIONS[promptStep].title}</h2>
+                <p className="text-2xl font-bold text-gray-500 mb-10">{PROMPT_MISSIONS[promptStep].description}</p>
 
-                <div className="flex flex-wrap gap-6 justify-center">
+                <div className="flex flex-wrap gap-5 justify-center">
                   {PROMPT_MISSIONS[promptStep].parts.map((part, idx) => (
                     <motion.button
                       key={idx}
-                      whileHover={{ scale: 1.05, backgroundColor: '#fdf2f8' }} whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       onClick={() => handlePromptSelect(part)}
-                      className="px-10 py-6 bg-white border-4 border-pink-200 rounded-[2rem] text-3xl font-black text-pink-600 transition-all shadow-xl hover:border-pink-400"
+                      className="px-8 py-5 bg-white border-4 border-pink-100 rounded-[2rem] text-3xl font-black text-pink-500 transition-all shadow-lg hover:border-pink-400 hover:text-pink-600"
                     >
                       {part}
                     </motion.button>
@@ -597,11 +606,25 @@ export default function MagicStickApp() {
                 </div>
               </motion.div>
 
-              <div className="flex flex-col items-center gap-4 mt-8">
-                <div className="text-2xl font-bold text-gray-500 bg-white/50 px-4 py-1 rounded-full uppercase tracking-widest">명령어 조합중</div>
-                <div className="px-12 py-6 bg-white rounded-[2rem] border-4 border-accent text-4xl font-black text-gray-800 shadow-2xl min-w-[400px] text-center">
-                  {selectedPromptParts.join(' ') || "아래 단어를 골라주세요!"}
+              {/* Prompt Builder Context */}
+              <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-5xl">
+                <div className="flex gap-3 flex-wrap justify-center">
+                  {PROMPT_MISSIONS.map((m, i) => (
+                    <div key={m.id} className={`px-6 py-4 rounded-3xl border-2 transition-all flex flex-col items-center min-w-[160px] ${promptStep === i ? 'border-pink-500 bg-pink-50 shadow-lg' : selectedPromptParts[i] ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-white/50'}`}>
+                      <span className="text-sm font-bold opacity-40 mb-1">{m.category}</span>
+                      <span className={`text-xl font-black ${selectedPromptParts[i] ? 'text-gray-900' : 'text-gray-300 italic'}`}>
+                        {selectedPromptParts[i] || '기다리는 중...'}
+                      </span>
+                    </div>
+                  ))}
                 </div>
+
+                {selectedPromptParts.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-6 bg-gray-900 rounded-[2.5rem] border-4 border-accent shadow-2xl w-full text-center">
+                    <p className="text-sm font-bold text-accent mb-2 tracking-[0.3em]">AI에게 전달되는 마법의 문장</p>
+                    <p className="text-3xl font-black text-white">"{selectedPromptParts.join(', ')}"</p>
+                  </motion.div>
+                )}
               </div>
             </div>
           )}
