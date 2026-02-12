@@ -6,12 +6,13 @@ import confetti from 'canvas-confetti';
 import {
   Trophy, Mic, MousePointer2,
   Home, RotateCcw, Keyboard, ArrowRight,
-  Image as ImageIcon, Send, Wand2, Eraser, Search
+  Image as ImageIcon, Send, Wand2, Eraser, Search,
+  Sparkles, Brain, Shapes, MessageSquarePlus
 } from 'lucide-react';
 
 // --- Types ---
 type Persona = 'silver' | 'junior';
-type Module = 'mouse' | 'keyboard' | 'voice' | 'creation';
+type Module = 'mouse' | 'keyboard' | 'voice' | 'prompt' | 'creation';
 
 interface Flower {
   id: number;
@@ -32,7 +33,33 @@ interface Leaf {
 const LEVEL_GOALS = {
   mouse: [30, 15],
   keyboard: [15, 5],
+  prompt: [3, 2], // Missions to complete
 };
+
+const PROMPT_MISSIONS = [
+  {
+    id: 1,
+    title: "주인공을 정해요!",
+    description: "누가 무엇을 하고 있나요?",
+    parts: ["고양이가", "강아지가", "사자가"],
+    action: ["춤을 춰요", "잠을 자요", "노래해요"],
+    target: "고양이가 춤을 춰요"
+  },
+  {
+    id: 2,
+    title: "장소를 더해봐요!",
+    description: "어디에서 하고 있나요?",
+    parts: ["우주에서", "바다 밑에서", "구름 위에서"],
+    target: "우주에서"
+  },
+  {
+    id: 3,
+    title: "색깔과 스타일!",
+    description: "어떤 색깔이 좋을까요?",
+    parts: ["반짝이는 무지개색", "시원한 파란색", "따뜻한 노란색"],
+    target: "반짝이는 무지개색"
+  }
+];
 
 // --- Components ---
 
@@ -40,7 +67,6 @@ const PetalFlower = ({ color, isBloomed, persona }: { color: string, isBloomed: 
   const petals = [0, 60, 120, 180, 240, 300];
   return (
     <div className="relative w-32 h-32 flex items-center justify-center">
-      {/* Scattering Petals Effect on Bloom */}
       <AnimatePresence>
         {isBloomed && petals.map((angle, i) => (
           <motion.div
@@ -60,7 +86,6 @@ const PetalFlower = ({ color, isBloomed, persona }: { color: string, isBloomed: 
         ))}
       </AnimatePresence>
 
-      {/* Circle Target (Before Clicking) */}
       {!isBloomed && (
         <motion.div
           animate={{ scale: [1, 1.1, 1] }}
@@ -72,7 +97,6 @@ const PetalFlower = ({ color, isBloomed, persona }: { color: string, isBloomed: 
         </motion.div>
       )}
 
-      {/* Bloomed Flower (Briefly visible before disappearing) */}
       {isBloomed && (
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
@@ -111,8 +135,12 @@ export default function MagicStickApp() {
 
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [aiResult, setAiResult] = useState<{ image?: string, musicText?: string } | null>(null);
+  const [aiResult, setAiResult] = useState<{ image?: string } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Prompt Module Specific States
+  const [promptStep, setPromptStep] = useState(0);
+  const [selectedPromptParts, setSelectedPromptParts] = useState<string[]>([]);
 
   const gameStageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +160,7 @@ export default function MagicStickApp() {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ko-KR';
-      utterance.rate = persona === 'junior' ? 1.0 : 0.8;
+      utterance.rate = persona === 'junior' ? 1.1 : 0.8;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -181,7 +209,7 @@ export default function MagicStickApp() {
   };
 
   const spawnWord = () => {
-    const words = persona === 'junior' ? ['우유', '사과', '포도', '나비', '학교'] : ['사랑', '안녕', '행복', '건강', '감사'];
+    const words = persona === 'junior' ? ['사과', '바나나', '친구', '학교', '하늘'] : ['사랑', '안녕', '행복', '건강', '감사'];
     setTargetWord(words[Math.floor(Math.random() * words.length)]);
     setInputValue('');
   };
@@ -220,13 +248,13 @@ export default function MagicStickApp() {
 
   const handleLevelComplete = () => {
     setIsCompleted(true);
-    speak(persona === 'junior' ? "와아! 미션 성공! 한 단계 더 올라갔어!" : "축하합니다 어르신! 단계를 완벽하게 마치셨습니다.");
+    speak(persona === 'junior' ? "최고야! 다음 단계로 넘어가보자!" : "축하합니다! 단계를 완벽하게 마치셨습니다.");
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
   };
 
   const givePraise = () => {
     const list = persona === 'junior'
-      ? ["대단해!", "정말 잘해!", "우와!", "최고!", "멋져!"]
+      ? ["멋져!", "대단해!", "잘했어!", "우와!", "최고!"]
       : ["잘하셨어요!", "훌륭합니다!", "정확해요!", "좋습니다!", "최고예요!"];
     const p = list[Math.floor(Math.random() * list.length)];
     setPraise(p);
@@ -246,24 +274,51 @@ export default function MagicStickApp() {
       setCurrentLevel(2);
       spawnLeaves();
       setIsStarted(true);
-      speak(persona === 'junior' ? "이제 낙엽을 옮겨볼까?" : "마우스를 이동시켜 낙엽을 바구니에 담아보세요.");
+      speak(persona === 'junior' ? "낙엽을 옮겨볼까?" : "마우스를 이동시켜 낙엽을 바구니에 담아보세요.");
     } else if (currentModule === 'mouse' && currentLevel === 2) {
       setCurrentModule('keyboard');
       setCurrentLevel(1);
       setIsStarted(false);
-      speak(persona === 'junior' ? "키보드 마법을 부려보자!" : "이제 키보드 연습을 시작합니다.");
+      speak(persona === 'junior' ? "키보드 연습 시작!" : "이제 키보드 연습을 시작합니다.");
     } else if (currentModule === 'keyboard' && currentLevel === 1) {
       setCurrentLevel(2);
       setIsStarted(false);
-      speak(persona === 'junior' ? "단어를 직접 쳐볼까?" : "이제 예쁜 단어를 입력해볼까요?");
+      speak(persona === 'junior' ? "단어를 직접 써보자!" : "이제 예쁜 단어를 입력해볼까요?");
     } else if (currentModule === 'keyboard' && currentLevel === 2) {
-      setCurrentModule('voice');
-      setIsStarted(true);
-      speak(persona === 'junior' ? "나랑 대화해보자!" : "AI와 대화를 나누어 보세요.");
-    } else if (currentModule === 'voice') {
+      if (persona === 'junior') {
+        setCurrentModule('prompt');
+        setCurrentLevel(1);
+        setIsStarted(false);
+        setPromptStep(0);
+        setSelectedPromptParts([]);
+        speak("이제 AI에게 명령하는 법을 배워보자!");
+      } else {
+        setCurrentModule('voice');
+        setIsStarted(true);
+        speak("AI와 대화를 나누어 보세요.");
+      }
+    } else if (currentModule === 'prompt' || currentModule === 'voice') {
       setCurrentModule('creation');
       setIsStarted(true);
-      speak(persona === 'junior' ? "상상하는 그림을 만들어보자!" : "상상하시는 그림을 만들어 전송해보세요.");
+      speak("상상하는 그림을 만들어 전송해보세요.");
+    }
+  };
+
+  const handlePromptSelect = (part: string) => {
+    setSelectedPromptParts(prev => [...prev, part]);
+    playSound(440 + selectedPromptParts.length * 40);
+    speak(part);
+
+    if (promptStep < PROMPT_MISSIONS.length - 1) {
+      setTimeout(() => setPromptStep(s => s + 1), 500);
+    } else {
+      setTimeout(() => {
+        updateScore(1, LEVEL_GOALS.prompt[0]);
+        if (score + 1 < LEVEL_GOALS.prompt[0]) {
+          setPromptStep(0);
+          setSelectedPromptParts([]);
+        }
+      }, 1000);
     }
   };
 
@@ -278,15 +333,16 @@ export default function MagicStickApp() {
   };
 
   const generateAI = async () => {
-    if (!transcript) return;
+    const text = currentModule === 'creation' ? transcript : selectedPromptParts.join(' ');
+    if (!text) return;
     setIsGenerating(true);
-    speak(persona === 'junior' ? "그림을 그리는 중이야!" : "AI가 그림을 만들고 있습니다.");
+    speak("AI가 상상을 현실로 만드는 중이야!");
     setTimeout(() => {
       setAiResult({
-        image: `https://picsum.photos/seed/${transcript}/800/600`,
+        image: `https://picsum.photos/seed/${text}/800/600`,
       });
       setIsGenerating(false);
-      speak(persona === 'junior' ? "우와! 근사한 그림이야!" : "그림이 완성되었습니다. 정말 멋지네요.");
+      speak("와! 정말 멋진 작품이 완성됐어!");
       confetti({ particleCount: 100, spread: 70 });
     }, 3000);
   };
@@ -302,6 +358,8 @@ export default function MagicStickApp() {
     setLeaves([]);
     setTranscript('');
     setAiResult(null);
+    setPromptStep(0);
+    setSelectedPromptParts([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -318,8 +376,8 @@ export default function MagicStickApp() {
           e.preventDefault();
           setInputValue('');
         }
-      } else if (currentLevel === 2 && e.key === 'Enter') {
-        if (inputValue === targetWord) {
+      } else if (currentLevel === 2 && (e.key === 'Enter' || e.key === ' ')) {
+        if (inputValue.trim() === targetWord) {
           updateScore(1, LEVEL_GOALS.keyboard[1]);
           playSound(700);
           spawnWord();
@@ -335,7 +393,6 @@ export default function MagicStickApp() {
 
     if (currentModule === 'keyboard') {
       if (currentLevel === 1) {
-        // Fallback for single char detection if keydown misses it
         const lastChar = value.slice(-1).toUpperCase();
         const target = targetKey === 'Space' ? ' ' : targetKey.toUpperCase();
         if (lastChar === target && targetKey !== 'Enter') {
@@ -344,7 +401,7 @@ export default function MagicStickApp() {
           spawnKey();
         }
       } else if (currentLevel === 2) {
-        if (value === targetWord) {
+        if (value.trim() === targetWord) {
           updateScore(1, LEVEL_GOALS.keyboard[1]);
           playSound(700);
           spawnWord();
@@ -353,7 +410,8 @@ export default function MagicStickApp() {
     }
   };
 
-  // Views
+  // --- Views ---
+
   const PersonaSelection = () => (
     <div className="fixed inset-0 z-[100] bg-gray-950 flex flex-col items-center justify-center gap-8 text-white p-6">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
@@ -378,16 +436,18 @@ export default function MagicStickApp() {
         <div className={`w-16 h-16 rounded-[1.2rem] flex items-center justify-center text-gray-900 shadow-lg ${persona === 'junior' ? 'bg-pink-400' : 'bg-accent'}`}>
           {currentModule === 'mouse' ? <MousePointer2 size={32} /> :
             currentModule === 'keyboard' ? <Keyboard size={32} /> :
-              currentModule === 'voice' ? <Mic size={32} /> : <Wand2 size={32} />}
+              currentModule === 'prompt' ? <Brain size={32} /> :
+                currentModule === 'voice' ? <Mic size={32} /> : <ImageIcon size={32} />}
         </div>
         <div>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${persona === 'junior' ? 'bg-pink-400/20 text-pink-400' : 'bg-accent/20 text-accent'}`}>
-            Module {currentModule === 'mouse' ? '1' : currentModule === 'keyboard' ? '2' : currentModule === 'voice' ? '3' : '4'}
+            Level {currentModule === 'mouse' ? '1' : currentModule === 'keyboard' ? '2' : currentModule === 'prompt' ? '3' : '4'}
           </span>
           <h1 className="text-2xl font-black high-contrast-text">
-            {currentModule === 'mouse' ? (currentLevel === 1 ? '클릭 연습' : '드래그 연습') :
-              currentModule === 'keyboard' ? (currentLevel === 1 ? '키보드 입문' : '문장 입력') :
-                currentModule === 'voice' ? '대화 나누기' : '작품 만들기'}
+            {currentModule === 'mouse' ? (currentLevel === 1 ? '클릭 마법' : '드래그 마법') :
+              currentModule === 'keyboard' ? (currentLevel === 1 ? '단어 톡톡' : '문장 톡톡') :
+                currentModule === 'prompt' ? 'AI 프롬프트 학교' :
+                  currentModule === 'voice' ? '음성 대화' : '상상 일기 만들기'}
           </h1>
         </div>
       </div>
@@ -395,13 +455,13 @@ export default function MagicStickApp() {
       <div className="flex items-center gap-6">
         <div className="w-48 text-right">
           <div className="flex justify-between mb-1 font-bold text-sm">
-            <span className="opacity-60">진행도</span>
-            <span className="text-accent">{score} / {currentModule === 'mouse' ? LEVEL_GOALS.mouse[currentLevel - 1] : currentModule === 'keyboard' ? LEVEL_GOALS.keyboard[currentLevel - 1] : '∞'}</span>
+            <span className="opacity-60">미션 진행중</span>
+            <span className="text-accent">{score} / {currentModule === 'mouse' ? LEVEL_GOALS.mouse[currentLevel - 1] : currentModule === 'keyboard' ? LEVEL_GOALS.keyboard[currentLevel - 1] : (currentModule === 'prompt' ? LEVEL_GOALS.prompt[0] : '∞')}</span>
           </div>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden">
             <motion.div
               className={`h-full rounded-full ${persona === 'junior' ? 'bg-pink-400' : 'bg-accent'}`}
-              animate={{ width: `${(score / (currentModule === 'mouse' ? LEVEL_GOALS.mouse[currentLevel - 1] : currentModule === 'keyboard' ? LEVEL_GOALS.keyboard[currentLevel - 1] : 100)) * 100}%` }}
+              animate={{ width: `${(score / (currentModule === 'mouse' ? LEVEL_GOALS.mouse[currentLevel - 1] : currentModule === 'keyboard' ? LEVEL_GOALS.keyboard[currentLevel - 1] : 10)) * 100}%` }}
             />
           </div>
         </div>
@@ -416,7 +476,6 @@ export default function MagicStickApp() {
 
       {persona && (
         <div className="relative w-full flex-1 min-h-0 rounded-[2.5rem] glass-panel overflow-hidden shadow-2xl border-4 border-white/5" ref={gameStageRef}>
-          {/* Praise Overlay: Restored High Contrast Styling */}
           <AnimatePresence>
             {praise && (
               <motion.div
@@ -425,8 +484,8 @@ export default function MagicStickApp() {
                 exit={{ opacity: 0, scale: 0.5 }}
                 className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none"
               >
-                <div className={`px-24 py-12 rounded-[5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] border-4 border-white/30 backdrop-blur-3xl ${persona === 'junior' ? 'bg-pink-500' : 'bg-amber-500'}`}>
-                  <span className="text-[12rem] font-black text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">{praise}</span>
+                <div className={`px-24 py-12 rounded-[5rem] shadow-2xl border-4 border-white/30 backdrop-blur-3xl ${persona === 'junior' ? 'bg-pink-500' : 'bg-amber-500'}`}>
+                  <span className="text-[12rem] font-black text-white drop-shadow-2xl">{praise}</span>
                 </div>
               </motion.div>
             )}
@@ -504,10 +563,42 @@ export default function MagicStickApp() {
                 <input
                   ref={inputRef} type="text" value={inputValue} onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full bg-white/40 border-4 border-white/60 rounded-[2rem] px-12 py-8 text-5xl font-black text-gray-800 text-center focus:border-accent outline-none shadow-inner placeholder:text-gray-400 transition-all"
+                  className="w-full bg-white/40 border-4 border-white/60 rounded-[2rem] px-12 py-8 text-5xl font-black text-gray-800 text-center focus:border-accent outline-none shadow-inner transition-all"
                   autoComplete="off" placeholder="여기에 입력"
                 />
                 <div className="absolute left-8 top-1/2 -translate-y-1/2 opacity-30 text-gray-800"><Search size={40} /></div>
+              </div>
+            </div>
+          )}
+
+          {currentModule === 'prompt' && isStarted && !isCompleted && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 gap-8">
+              <motion.div className="glass-panel p-8 rounded-[3rem] w-full max-w-4xl border-white/10 shadow-2xl bg-white/5">
+                <div className="flex items-center gap-4 mb-6 text-accent">
+                  <Sparkles size={40} />
+                  <h2 className="text-4xl font-black">{PROMPT_MISSIONS[promptStep].title}</h2>
+                </div>
+                <p className="text-4XL font-bold text-white/80 mb-10">{PROMPT_MISSIONS[promptStep].description}</p>
+
+                <div className="flex flex-wrap gap-4 justify-center">
+                  {PROMPT_MISSIONS[promptStep].parts.map((part, idx) => (
+                    <motion.button
+                      key={idx}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => handlePromptSelect(part)}
+                      className="px-8 py-5 bg-white/10 hover:bg-white/20 border-2 border-white/20 rounded-2xl text-2xl font-bold text-white transition-all shadow-lg"
+                    >
+                      {part}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+
+              <div className="flex items-center gap-4 mt-8">
+                <div className="text-2xl font-bold opacity-50">명령어 조합중:</div>
+                <div className="px-10 py-5 bg-accent/20 rounded-2xl border-2 border-accent/30 text-3xl font-black text-accent shadow-xl min-w-[300px] text-center">
+                  {selectedPromptParts.join(' ') || "단어를 골라주세요!"}
+                </div>
               </div>
             </div>
           )}
@@ -518,9 +609,9 @@ export default function MagicStickApp() {
                 <Mic size={80} className="text-white" />
               </motion.div>
               <div className="glass-panel p-6 rounded-[2rem] w-full max-w-2xl text-center">
-                <p className="text-3xl font-black text-white">{transcript || '"안녕하세요" 라고 말하기'}</p>
+                <p className="text-3xl font-black text-white">{transcript || '"오늘 날씨 어때?" 라고 물어봐!'}</p>
               </div>
-              <button onMouseDown={startListening} className="px-16 py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-[3rem] text-3xl font-black shadow-2xl">
+              <button onMouseDown={startListening} className="px-16 py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-[3rem] text-3xl font-black shadow-2xl transition-all">
                 {isListening ? "듣는 중..." : "눌러서 말하기"}
               </button>
             </div>
@@ -531,11 +622,12 @@ export default function MagicStickApp() {
               {!aiResult ? (
                 <div className="flex flex-col items-center gap-8">
                   <div className="w-32 h-32 bg-pink-500 rounded-full flex items-center justify-center text-white text-6xl shadow-2xl animate-pulse">✨</div>
-                  <h2 className="text-4xl font-black text-white">무엇을 그리고 싶나요?</h2>
+                  <h2 className="text-4xl font-black text-white">무엇을 상상했나요?</h2>
                   <div className="flex gap-4">
-                    <button onClick={startListening} className="px-12 py-6 bg-blue-600 text-white rounded-[2rem] text-2xl font-black flex items-center gap-3"><Mic size={32} /> 말하기</button>
-                    {transcript && <button onClick={generateAI} disabled={isGenerating} className="px-12 py-6 bg-accent text-gray-950 rounded-[2rem] text-2xl font-black flex items-center gap-3 disabled:opacity-50">{isGenerating ? "그리는 중..." : "그리기"}</button>}
+                    <button onClick={startListening} className="px-12 py-6 bg-blue-600 text-white rounded-[2rem] text-2xl font-black flex items-center gap-3"><Mic size={32} /> 말씀하기</button>
+                    {transcript && <button onClick={generateAI} disabled={isGenerating} className="px-12 py-6 bg-accent text-gray-950 rounded-[2rem] text-2xl font-black flex items-center gap-3 disabled:opacity-50">{isGenerating ? "그리는 중..." : "그림 그리기"}</button>}
                   </div>
+                  {transcript && <p className="text-3xl text-accent font-black">"{transcript}"</p>}
                 </div>
               ) : (
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-6">
@@ -550,21 +642,29 @@ export default function MagicStickApp() {
           )}
 
           <AnimatePresence>
-            {!isStarted && currentModule !== 'voice' && currentModule !== 'creation' && (
+            {!isStarted && currentModule !== 'voice' && currentModule !== 'creation' && currentModule !== 'prompt' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[60] bg-gray-900/90 backdrop-blur-xl flex flex-col items-center justify-center gap-10">
                 <div className="text-[10rem] animate-bounce">{currentModule === 'mouse' ? '🖱️' : '⌨️'}</div>
                 <h2 className="text-5xl font-black text-center leading-tight">
-                  {currentModule === 'mouse' ? '동그라미를 클릭해서 꽃을 피워봐!' : '버튼을 톡톡 눌러봐!'}
+                  {currentModule === 'mouse' ? '마우스 마법을 시작해볼까?' : '키보드 마법을 시작해볼까?'}
                 </h2>
                 <button onClick={() => { setIsStarted(true); currentModule === 'mouse' ? spawnFlower() : (currentLevel === 1 ? spawnKey() : spawnWord()); speak("시작!"); }} className={`px-20 py-8 rounded-full text-4xl font-black text-gray-900 shadow-2xl hover:scale-110 transition-all ${persona === 'junior' ? 'bg-pink-400' : 'bg-accent'}`}>도전 시작!</button>
+              </motion.div>
+            )}
+
+            {!isStarted && currentModule === 'prompt' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[60] bg-gray-900/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 text-center p-12">
+                <Brain size={140} className="text-accent animate-pulse" />
+                <h2 className="text-5xl font-black text-white leading-tight">AI에게 똑똑하게 말하는 법!<br />프롬프트 퍼즐을 맞춰봐!</h2>
+                <button onClick={() => { setIsStarted(true); speak("AI 학교에 온 걸 환영해!"); }} className="px-20 py-8 rounded-full text-4xl font-black bg-accent text-gray-900 shadow-2xl hover:scale-110 transition-all">수업 시작!</button>
               </motion.div>
             )}
 
             {isCompleted && (
               <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 z-[70] bg-gray-950/95 backdrop-blur-3xl flex flex-col items-center justify-center gap-8 text-center p-10">
                 <Trophy size={140} className="text-accent animate-bounce" />
-                <h2 className="text-6xl font-black text-white">성공했어요!</h2>
-                <button onClick={nextMode} className={`px-20 py-8 rounded-[2rem] text-4xl font-black text-gray-900 flex items-center gap-6 ${persona === 'junior' ? 'bg-pink-400' : 'bg-accent'}`}>다음으로 <ArrowRight size={48} /></button>
+                <h2 className="text-6xl font-black text-white">미션 클리어!</h2>
+                <button onClick={nextMode} className={`px-20 py-8 rounded-[2rem] text-4xl font-black text-gray-900 flex items-center gap-6 ${persona === 'junior' ? 'bg-pink-400' : 'bg-accent'}`}>다음 미션으로! <ArrowRight size={48} /></button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -573,14 +673,19 @@ export default function MagicStickApp() {
 
       {persona && (
         <div className="flex flex-col gap-4 w-full items-center shrink-0 mb-4">
-          <div className="glass-panel px-6 py-3 rounded-full flex gap-4 border border-white/10 shadow-lg">
-            <button onClick={() => { setCurrentModule('mouse'); setCurrentLevel(1); setScore(0); setFlowers([]); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'mouse' ? (persona === 'junior' ? 'bg-pink-400 text-white' : 'bg-accent text-gray-900') : 'opacity-40'}`}>1단계: 마우스 기초</button>
-            <button onClick={() => { setCurrentModule('voice'); setScore(0); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'voice' ? 'bg-blue-600 text-white' : 'opacity-40'}`}>2단계: 음성 대화</button>
-            <button onClick={() => { setCurrentModule('creation'); setScore(0); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'creation' ? 'bg-purple-600 text-white' : 'opacity-40'}`}>3단계: AI 창작</button>
+          <div className="glass-panel px-6 py-3 rounded-full flex gap-4 border border-white/10 shadow-lg bg-white/5 backdrop-blur-md">
+            <button onClick={() => { setCurrentModule('mouse'); setCurrentLevel(1); setScore(0); setFlowers([]); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'mouse' ? (persona === 'junior' ? 'bg-pink-400 text-white shadow-lg' : 'bg-accent text-gray-900 shadow-lg') : 'opacity-40'}`}>1단계: 마우스</button>
+            <button onClick={() => { setCurrentModule('keyboard'); setCurrentLevel(1); setScore(0); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'keyboard' ? (persona === 'junior' ? 'bg-pink-400 text-white shadow-lg' : 'bg-accent text-gray-900 shadow-lg') : 'opacity-40'}`}>2단계: 키보드</button>
+            {persona === 'junior' ? (
+              <button onClick={() => { setCurrentModule('prompt'); setScore(0); setPromptStep(0); setSelectedPromptParts([]); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'prompt' ? 'bg-accent text-gray-900 shadow-lg' : 'opacity-40'}`}>3단계: 프롬프트</button>
+            ) : (
+              <button onClick={() => { setCurrentModule('voice'); setScore(0); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'voice' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40'}`}>3단계: 음성대화</button>
+            )}
+            <button onClick={() => { setCurrentModule('creation'); setScore(0); }} className={`px-6 py-3 rounded-full font-bold transition-all ${currentModule === 'creation' ? 'bg-purple-600 text-white shadow-lg' : 'opacity-40'}`}>4단계: AI 창작</button>
           </div>
           <div className="flex gap-4">
-            <button onClick={resetState} className="glass-panel px-8 py-3 rounded-full text-lg font-bold flex items-center gap-2 hover:bg-white/10 transition-all border border-white/5 shadow-lg"><Home size={20} /> 처음으로</button>
-            <button onClick={() => { setScore(0); setIsStarted(false); setIsCompleted(false); setFlowers([]); setLeaves([]); }} className="glass-panel px-8 py-3 rounded-full text-lg font-bold flex items-center gap-2 hover:bg-white/10 transition-all border border-white/5 shadow-lg"><RotateCcw size={20} /> 다시 하기</button>
+            <button onClick={resetState} className="glass-panel px-8 py-3 rounded-full text-lg font-bold flex items-center gap-2 hover:bg-white/10 transition-all border border-white/5"><Home size={20} /> 처음으로</button>
+            <button onClick={() => { setScore(0); setIsStarted(false); setIsCompleted(false); setFlowers([]); setLeaves([]); setPromptStep(0); setSelectedPromptParts([]); }} className="glass-panel px-8 py-3 rounded-full text-lg font-bold flex items-center gap-2 hover:bg-white/10 transition-all border border-white/5"><RotateCcw size={20} /> 다시 하기</button>
           </div>
         </div>
       )}
@@ -588,15 +693,15 @@ export default function MagicStickApp() {
       {persona && (
         <div className="fixed bottom-6 right-6 flex flex-col items-end gap-3 z-[110]">
           <AnimatePresence>
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="glass-panel px-6 py-4 rounded-[2.5rem] rounded-br-none max-w-xs border-white/10 shadow-2xl">
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="glass-panel px-6 py-4 rounded-[2.5rem] rounded-br-none max-w-xs border-white/10 shadow-2xl bg-white/10 backdrop-blur-xl">
               <p className="text-lg font-medium leading-relaxed">
-                {isListening ? "잘 듣고 있어요." : isGenerating ? "그리는 중!" : (persona === 'junior' ? "나를 눌러봐! 🐶" : "절 부르세요! 🤖")}
+                {isListening ? "잘 듣고 있어요!" : isGenerating ? "멋진 그림을 그리는 중!" : (persona === 'junior' ? "프롬프트 퍼즐을 맞춰봐! 🐱" : "정확하게 입력해 보세요! 🤖")}
               </p>
             </motion.div>
           </AnimatePresence>
           <motion.button
             whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-            onClick={() => speak(persona === 'junior' ? "입력창을 누르고 글자를 쳐봐!" : "화면의 지시사항을 따라해보세요.")}
+            onClick={() => speak(currentModule === 'prompt' ? "문장을 완성해서 AI에게 명령을 내려보자!" : "도움이 필요하신가요?")}
             className={`w-20 h-20 rounded-full flex items-center justify-center text-5xl border-4 border-white/10 shadow-2xl ${persona === 'junior' ? 'from-pink-400 to-rose-500' : 'from-accent to-orange-500'} bg-gradient-to-tr cursor-pointer`}
           >
             {persona === 'junior' ? '🐶' : '🤖'}
