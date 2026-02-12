@@ -249,7 +249,7 @@ export default function MagicStickApp() {
   const handleLevelComplete = () => {
     setIsCompleted(true);
     speak(persona === 'junior' ? "최고야! 다음 단계로 넘어가보자!" : "축하합니다! 단계를 완벽하게 마치셨습니다.");
-    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
   };
 
   const givePraise = () => {
@@ -343,7 +343,7 @@ export default function MagicStickApp() {
       });
       setIsGenerating(false);
       speak("와! 정말 멋진 작품이 완성됐어!");
-      confetti({ particleCount: 100, spread: 70 });
+      confetti({ particleCount: 60, spread: 60 });
     }, 3000);
   };
 
@@ -479,13 +479,13 @@ export default function MagicStickApp() {
           <AnimatePresence>
             {praise && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1.2 }}
-                exit={{ opacity: 0, scale: 0.5 }}
+                initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.3 } }}
                 className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none"
               >
-                <div className={`px-24 py-12 rounded-[5rem] shadow-2xl border-4 border-white/30 backdrop-blur-3xl ${persona === 'junior' ? 'bg-pink-500' : 'bg-amber-500'}`}>
-                  <span className="text-[12rem] font-black text-white drop-shadow-2xl">{praise}</span>
+                <div className={`px-12 py-6 rounded-[3rem] shadow-xl border-4 border-white/40 ${persona === 'junior' ? 'bg-pink-500' : 'bg-amber-500'}`}>
+                  <span className="text-6xl font-black text-white drop-shadow-lg">{praise}</span>
                 </div>
               </motion.div>
             )}
