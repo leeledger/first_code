@@ -31,9 +31,9 @@ interface Leaf {
 
 // --- Constants ---
 const LEVEL_GOALS = {
-  mouse: [30, 15],
-  keyboard: [15, 5],
-  prompt: [3, 2], // Missions to complete
+  mouse: [10, 10],
+  keyboard: [10, 5],
+  prompt: [2, 2], // Missions to complete
 };
 
 const PROMPT_MISSIONS = [
@@ -578,27 +578,27 @@ export default function MagicStickApp() {
           )}
 
           {currentModule === 'prompt' && isStarted && !isCompleted && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 gap-6 bg-gradient-to-b from-white/20 to-transparent">
+            <div className="absolute inset-0 flex flex-col items-center justify-start p-4 md:p-8 gap-4 overflow-y-auto">
               {/* Mission Panel */}
               <motion.div
                 key={promptStep}
                 initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-                className="glass-panel p-10 rounded-[3rem] w-full max-w-4xl border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl relative overflow-hidden"
+                className="glass-panel p-6 md:p-8 rounded-[2.5rem] w-full max-w-4xl border-white/20 shadow-xl bg-white/95 backdrop-blur-xl relative"
               >
-                <div className="absolute top-0 right-0 p-4 opacity-10"><Brain size={120} /></div>
-                <div className="flex items-center gap-4 mb-4 text-pink-600">
-                  <span className="px-4 py-1 bg-pink-100 rounded-full text-lg font-black uppercase tracking-widest">{PROMPT_MISSIONS[promptStep].category}</span>
+                <div className="absolute top-2 right-4 opacity-5"><Brain size={80} /></div>
+                <div className="flex items-center gap-3 mb-2 text-pink-600">
+                  <span className="px-3 py-1 bg-pink-100 rounded-full text-xs font-black uppercase tracking-widest">{PROMPT_MISSIONS[promptStep].category}</span>
                 </div>
-                <h2 className="text-4xl font-black text-gray-900 mb-2">{PROMPT_MISSIONS[promptStep].title}</h2>
-                <p className="text-2xl font-bold text-gray-500 mb-10">{PROMPT_MISSIONS[promptStep].description}</p>
+                <h2 className="text-3xl font-black text-gray-900 mb-1">{PROMPT_MISSIONS[promptStep].title}</h2>
+                <p className="text-xl font-bold text-gray-500 mb-6">{PROMPT_MISSIONS[promptStep].description}</p>
 
-                <div className="flex flex-wrap gap-5 justify-center">
+                <div className="flex flex-wrap gap-3 justify-center">
                   {PROMPT_MISSIONS[promptStep].parts.map((part, idx) => (
                     <motion.button
                       key={idx}
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       onClick={() => handlePromptSelect(part)}
-                      className="px-8 py-5 bg-white border-4 border-pink-100 rounded-[2rem] text-3xl font-black text-pink-500 transition-all shadow-lg hover:border-pink-400 hover:text-pink-600"
+                      className="px-6 py-3 bg-white border-2 border-pink-100 rounded-2xl text-2xl font-black text-pink-500 transition-all shadow-md hover:border-pink-300"
                     >
                       {part}
                     </motion.button>
@@ -607,22 +607,22 @@ export default function MagicStickApp() {
               </motion.div>
 
               {/* Prompt Builder Context */}
-              <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-5xl">
-                <div className="flex gap-3 flex-wrap justify-center">
+              <div className="flex flex-col items-center gap-3 w-full max-w-5xl shrink-0 pb-4">
+                <div className="flex gap-2 flex-wrap justify-center scale-90 md:scale-100">
                   {PROMPT_MISSIONS.map((m, i) => (
-                    <div key={m.id} className={`px-6 py-4 rounded-3xl border-2 transition-all flex flex-col items-center min-w-[160px] ${promptStep === i ? 'border-pink-500 bg-pink-50 shadow-lg' : selectedPromptParts[i] ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-white/50'}`}>
-                      <span className="text-sm font-bold opacity-40 mb-1">{m.category}</span>
-                      <span className={`text-xl font-black ${selectedPromptParts[i] ? 'text-gray-900' : 'text-gray-300 italic'}`}>
-                        {selectedPromptParts[i] || '기다리는 중...'}
+                    <div key={m.id} className={`px-4 py-2 rounded-2xl border-2 transition-all flex flex-col items-center min-w-[140px] ${promptStep === i ? 'border-pink-500 bg-pink-50 shadow-md' : selectedPromptParts[i] ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-white/30'}`}>
+                      <span className="text-[10px] font-bold opacity-40 uppercase">{m.category}</span>
+                      <span className={`text-lg font-black leading-tight ${selectedPromptParts[i] ? 'text-gray-900' : 'text-gray-300 italic'}`}>
+                        {selectedPromptParts[i] || '---'}
                       </span>
                     </div>
                   ))}
                 </div>
 
                 {selectedPromptParts.length > 0 && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-6 bg-gray-900 rounded-[2.5rem] border-4 border-accent shadow-2xl w-full text-center">
-                    <p className="text-sm font-bold text-accent mb-2 tracking-[0.3em]">AI에게 전달되는 마법의 문장</p>
-                    <p className="text-3xl font-black text-white">"{selectedPromptParts.join(', ')}"</p>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-gray-950 rounded-[2rem] border-2 border-accent shadow-xl w-full text-center max-w-3xl">
+                    <p className="text-[10px] font-bold text-accent mb-1 tracking-[0.3em] uppercase">AI Magic Sentence</p>
+                    <p className="text-xl md:text-2xl font-black text-white px-4">"{selectedPromptParts.join(', ')}"</p>
                   </motion.div>
                 )}
               </div>
