@@ -573,20 +573,23 @@ export default function MagicStickApp() {
 
           {currentModule === 'prompt' && isStarted && !isCompleted && (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-12 gap-8">
-              <motion.div className="glass-panel p-8 rounded-[3rem] w-full max-w-4xl border-white/10 shadow-2xl bg-white/5">
-                <div className="flex items-center gap-4 mb-6 text-accent">
-                  <Sparkles size={40} />
+              <motion.div
+                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                className="glass-panel p-10 rounded-[3rem] w-full max-w-4xl border-white/20 shadow-2xl bg-white/80 backdrop-blur-xl"
+              >
+                <div className="flex items-center gap-4 mb-6 text-pink-600">
+                  <Sparkles size={48} />
                   <h2 className="text-4xl font-black">{PROMPT_MISSIONS[promptStep].title}</h2>
                 </div>
-                <p className="text-4XL font-bold text-white/80 mb-10">{PROMPT_MISSIONS[promptStep].description}</p>
+                <p className="text-3xl font-bold text-gray-700 mb-10">{PROMPT_MISSIONS[promptStep].description}</p>
 
-                <div className="flex flex-wrap gap-4 justify-center">
+                <div className="flex flex-wrap gap-6 justify-center">
                   {PROMPT_MISSIONS[promptStep].parts.map((part, idx) => (
                     <motion.button
                       key={idx}
-                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.05, backgroundColor: '#fdf2f8' }} whileTap={{ scale: 0.95 }}
                       onClick={() => handlePromptSelect(part)}
-                      className="px-8 py-5 bg-white/10 hover:bg-white/20 border-2 border-white/20 rounded-2xl text-2xl font-bold text-white transition-all shadow-lg"
+                      className="px-10 py-6 bg-white border-4 border-pink-200 rounded-[2rem] text-3xl font-black text-pink-600 transition-all shadow-xl hover:border-pink-400"
                     >
                       {part}
                     </motion.button>
@@ -594,10 +597,10 @@ export default function MagicStickApp() {
                 </div>
               </motion.div>
 
-              <div className="flex items-center gap-4 mt-8">
-                <div className="text-2xl font-bold opacity-50">명령어 조합중:</div>
-                <div className="px-10 py-5 bg-accent/20 rounded-2xl border-2 border-accent/30 text-3xl font-black text-accent shadow-xl min-w-[300px] text-center">
-                  {selectedPromptParts.join(' ') || "단어를 골라주세요!"}
+              <div className="flex flex-col items-center gap-4 mt-8">
+                <div className="text-2xl font-bold text-gray-500 bg-white/50 px-4 py-1 rounded-full uppercase tracking-widest">명령어 조합중</div>
+                <div className="px-12 py-6 bg-white rounded-[2rem] border-4 border-accent text-4xl font-black text-gray-800 shadow-2xl min-w-[400px] text-center">
+                  {selectedPromptParts.join(' ') || "아래 단어를 골라주세요!"}
                 </div>
               </div>
             </div>
